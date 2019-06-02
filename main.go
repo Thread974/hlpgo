@@ -180,7 +180,7 @@ type LineHandler interface {
 	process(line *string,  logentry *Logentry) error
 	// Accessed from multiple goroutines
 	display()
-	fini()
+	done()
 }
 
 func monitor(quit chan int, filename string, linehandlers []LineHandler) error {
@@ -241,7 +241,7 @@ func monitor(quit chan int, filename string, linehandlers []LineHandler) error {
 type PrintLineHandler struct { }
 
 func (p *PrintLineHandler)init() {
-	fmt.Println("PrintLineHandler ready")
+	fmt.Println("Line printer ready")
 }
 
 func (p *PrintLineHandler)process(line *string, logentry *Logentry) error {
@@ -253,8 +253,8 @@ func (p *PrintLineHandler)display() {
 	// No synchronisation because the display method does nothing
 }
 
-func (p *PrintLineHandler)fini() {
-	fmt.Println("PrintLineHandler fini")
+func (p *PrintLineHandler)done() {
+	fmt.Println("Line printer done")
 }
 
 type PerURLStatisticsLineHandler struct {
@@ -267,7 +267,7 @@ type PerURLStatisticsLineHandler struct {
 func (p *PerURLStatisticsLineHandler)init() {
 	p.start = time.Now()
 	p.sections = make(map[string]int)
-	fmt.Println("PerURLStatisticsLineHandler ready")
+	fmt.Println("Section statistics ready")
 }
 
 func (p *PerURLStatisticsLineHandler)process(line *string, logentry *Logentry) error {
@@ -288,10 +288,10 @@ func (p *PerURLStatisticsLineHandler)display() {
 	defer p.m.Unlock()
 
 	if (time.Since(p.start) > p.nanosec) {
-		fmt.Println("Statistics:")
+		fmt.Println("Section statistics:")
 		var total = 0
 		for key, value := range p.sections {
-			fmt.Println("\tSection", key, "Hits", value)
+			fmt.Println("\t", "/"+key, ":", value)
 			total += value
 		}
 		fmt.Println("\tTotal requests:", total)
@@ -300,8 +300,8 @@ func (p *PerURLStatisticsLineHandler)display() {
 	}
 }
 
-func (p *PerURLStatisticsLineHandler)fini() {
-	fmt.Println("PerURLStatisticsLineHandler fini")
+func (p *PerURLStatisticsLineHandler)done() {
+	fmt.Println("Section statistics done")
 }
 
 type GlobalStatisticsLineHandler struct {
@@ -313,6 +313,7 @@ type GlobalStatisticsLineHandler struct {
 	start time.Time
 	m sync.Mutex
 	alert bool
+	alertcount int
 }
 
 func (p *GlobalStatisticsLineHandler)init() {
@@ -320,7 +321,7 @@ func (p *GlobalStatisticsLineHandler)init() {
 	p.bytessent = 0
 	p.secs = uint64(p.nanosec) / NANOINSEC
 	p.start = time.Now()
-	fmt.Println("GlobalStatisticsLineHandler ready")
+	fmt.Println("Global statistics ready")
 }
 
 func (p *GlobalStatisticsLineHandler)process(line *string, logentry *Logentry) error {
@@ -329,7 +330,7 @@ func (p *GlobalStatisticsLineHandler)process(line *string, logentry *Logentry) e
 
 	size, err := strconv.Atoi(strings.Trim(logentry.size, " \t\r\n"))
 	if err != nil {
-		fmt.Println("GlobalStatisticsLineHandler", logentry.size, "converted to", size)
+		fmt.Println("Global statistics", logentry.size, "converted to", size)
 		return errors.New("Failed to convert an int")
 	}
 	if size < 0 {
@@ -345,12 +346,10 @@ func (p *GlobalStatisticsLineHandler)display() {
 	defer p.m.Unlock()
 
 	if (time.Since(p.start) > p.nanosec) {
-		fmt.Println("Global statistics:");
-		fmt.Println("\tRequests:", p.requests, "Bytes sent:", p.bytessent)
-
 		if (p.requests / p.secs > p.threshold && !p.alert) {
-			fmt.Println("*** High traffic generated an alert at ", time.Now(), ", requests:", p.requests, "***")
+			fmt.Println("*** High traffic alert emitted at ", time.Now(), ", requests:", p.requests, "***")
 			p.alert = true
+			p.alertcount ++
 		}
 
 		if (p.requests / p.secs < p.threshold && p.alert) {
@@ -358,14 +357,21 @@ func (p *GlobalStatisticsLineHandler)display() {
 			p.alert = false
 		}
 
+		fmt.Println("Global statistics:");
+		fmt.Println("\tRequests:", p.requests)
+		fmt.Println("\tRequests per seconds:", p.requests/p.secs)
+		fmt.Println("\tBytes sent:", p.bytessent)
+		fmt.Println("\tBytes sent per seconds:", p.bytessent/p.secs)
+		fmt.Println("\tHigh traffic alerts:", p.alertcount)
+
 		p.requests = 0
 		p.bytessent = 0
 		p.start = time.Now()
 	}
 }
 
-func (p *GlobalStatisticsLineHandler)fini() {
-	fmt.Println("GlobalStatisticsLineHandler fini")
+func (p *GlobalStatisticsLineHandler)done() {
+	fmt.Println("Global statistics done")
 }
 
 func ui(quit chan int, linehandlers []LineHandler) error {
@@ -426,14 +432,14 @@ func TestAlert() error {
 	if toto.alert {
 		return errors.New("Test failed, alert should be recovered");
 	}
-	
+	toto.done()
 	return nil
 }
 
 func main() {
 	logfileP := flag.String("file", "/tmp/access.log", "Filename to monitor")
 	genP := flag.Bool("generate", false, "Generate data on the fly")
-	genDurationP := flag.Duration("generate-internal", 0, "Generate data internel")
+	genDurationP := flag.Duration("generate-interval", 0, "Generate data interval")
 	runtestP := flag.Bool("test", false, "Run test")
 	printP := flag.Bool("print", false, "Print input data")
 	statsP := flag.Bool("statistics", true, "Show section access")
@@ -508,6 +514,6 @@ func main() {
 	quit <- 3 // ui
 
 	for _, linehandler := range linehandlers {
-		linehandler.fini()
+		linehandler.done()
 	}
 }

@@ -24,6 +24,7 @@ const (
 )
 
 const NANOINSEC = 1000000000
+const STRINGTOOBIG = 40000
 
 func (m HttpMethod) String() string {
 	if m == HttpGet {
@@ -62,7 +63,7 @@ func (l Logentry) String() string {
 
 func LogentryParse(l *Logentry, s string) error {
 
-	if len(s) > 100000 {
+	if len(s) > STRINGTOOBIG {
 		return errors.New("Logentry too big")
 	}
 
@@ -205,7 +206,7 @@ func monitor(quit chan int, filename string, linehandlers []LineHandler) error {
 		// The reader sometimes returns incomplete lines
 		// Make sure to have full lines before parsing
 		var line string
-		for len(line) == 0 || (len(line) < 40000 && line[len(line)-1] != '\n') {
+		for len(line) == 0 || (len(line) < STRINGTOOBIG && line[len(line)-1] != '\n') {
 			select {
 				case <-quit:
 					return nil
@@ -375,7 +376,7 @@ func ui(quit chan int, linehandlers []LineHandler) error {
 			default:
 		}
 
-		time.Sleep(10*1000*1000);
+		time.Sleep(NANOINSEC/10);
 
 		for _, linehandler := range linehandlers {
 			linehandler.display()

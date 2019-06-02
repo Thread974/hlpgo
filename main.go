@@ -23,6 +23,8 @@ const (
 	HttpMethodCount HttpMethod = 2
 )
 
+const NANOINSEC = 1000000000
+
 func (m HttpMethod) String() string {
 	if m == HttpGet {
 		return "GET"
@@ -315,7 +317,7 @@ type GlobalStatisticsLineHandler struct {
 func (p *GlobalStatisticsLineHandler)init() {
 	p.requests = 0
 	p.bytessent = 0
-	p.secs = uint64(p.nanosec) / 1000000000
+	p.secs = uint64(p.nanosec) / NANOINSEC
 	p.start = time.Now()
 	fmt.Println("GlobalStatisticsLineHandler ready")
 }
@@ -351,7 +353,7 @@ func (p *GlobalStatisticsLineHandler)display() {
 		}
 
 		if (p.requests / p.secs < p.threshold && p.alert) {
-			fmt.Println("*** High traffic alert recoveredat ", time.Now(), ", , requests:", p.requests, "***")
+			fmt.Println("*** High traffic alert recovered at ", time.Now(), ", , requests:", p.requests, "***")
 			p.alert = false
 		}
 
@@ -391,12 +393,13 @@ func TestAlert() error {
 	LogentryParse(&logentry, entry)
 
 	// Alert if more than 20 requests per seconds
-	var toto = GlobalStatisticsLineHandler{nanosec: 1000000000, threshold: 20}
+	var toto = GlobalStatisticsLineHandler{nanosec: 1*NANOINSEC, threshold: 20}
+	toto.init()
 
 	// Display 10 times in a second, no alert
 	for i := 0; i < 10; i++ {
 		toto.process(&entry, &logentry)
-		time.Sleep(100*1000000000)
+		time.Sleep(NANOINSEC/10)
 	}
 	toto.display()
 	if toto.alert {
@@ -406,7 +409,7 @@ func TestAlert() error {
 	// Display 30 times in a second, no alert
 	for i := 0; i < 30; i++ {
 		toto.process(&entry, &logentry)
-		time.Sleep(30*1000000000)
+		time.Sleep(NANOINSEC/30)
 	}
 	toto.display()
 	if !toto.alert {
@@ -416,12 +419,13 @@ func TestAlert() error {
 	// Display 10 times in a second, alert recovers
 	for i := 0; i < 10; i++ {
 		toto.process(&entry, &logentry)
-		time.Sleep(10*1000000000)
+		time.Sleep(NANOINSEC/10)
 	}
 	toto.display()
 	if toto.alert {
 		return errors.New("Test failed, alert should be recovered");
 	}
+	
 	return nil
 }
 
@@ -433,8 +437,8 @@ func main() {
 	printP := flag.Bool("print", false, "Print input data")
 	statsP := flag.Bool("statistics", true, "Show section access")
 	globsP := flag.Bool("global", true, "Show global statistics")
-	statsdelayP := flag.Duration("stats-delay", 2000000000, "Show section access delay")
-	globsdelayP := flag.Duration("globs-delay", 3000000000, "Show global statistics delay")
+	statsdelayP := flag.Duration("stats-delay", 2 * NANOINSEC, "Show section access delay")
+	globsdelayP := flag.Duration("globs-delay", 3 * NANOINSEC, "Show global statistics delay")
 	thresholdP := flag.Uint64("threshold", 300000, "Global alarm threshold")
 	rundelayP := flag.Duration("run-delay", 0, "Quit after this delay expired")
 	helpP := flag.Bool("help", false, "Show help")

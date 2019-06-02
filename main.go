@@ -456,7 +456,7 @@ func main() {
 		}
 
 		fmt.Println("Testing the alerting logic")
-		if err := TestParser(); err != nil {
+		if err := TestAlert(); err != nil {
 			log.Fatal(err)
 		}
 

@@ -2,8 +2,9 @@ FROM debian:buster
 
 RUN apt update
 RUN apt -y upgrade
-RUN apt -y install golang-go
+RUN apt -y install golang-go git
 
-RUN apt -y install git
-RUN go get github.com/Thread974/hlpgo
-RUN go run github.com/Thread974/hlpgo --generate
+RUN cd /root && go get github.com/Thread974/hlpgo
+RUN cd /root && /root/go/bin/hlpgo --test
+RUN cd /root && go build github.com/Thread974/hlpgo
+RUN cd /root && /root/go/bin/hlpgo --help && echo "hlp go is running properly"

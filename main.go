@@ -182,14 +182,7 @@ type LineHandler interface {
 	done()
 }
 
-func monitor(quit chan int, filename string, linehandlers []LineHandler) error {
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Println("Failed to open", filename, "err", err);
-		return err
-	}
-	defer file.Close()
-
+func monitor(quit chan int, file *os.File, linehandlers []LineHandler) error {
 	offset, err := file.Seek(0, io.SeekEnd)
 	if err != nil {
 		return err
@@ -508,7 +501,14 @@ func main() {
 		linehandler.init()
 	}
 
-	go monitor(quit, *logfileP, linehandlers)
+	monfile, err := os.Open(*logfileP)
+	if err != nil {
+		fmt.Println("Failed to open", *logfileP, "err", err);
+		return
+	}
+	defer monfile.Close()
+
+	go monitor(quit, monfile, linehandlers)
 
 	go ui(quit, linehandlers)
 

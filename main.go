@@ -344,16 +344,17 @@ func (p *GlobalStatisticsLineHandler)display() {
 	defer p.m.Unlock()
 
 	if (time.Since(p.start) > p.nanosec) {
-		if (p.requests / p.secs > p.threshold && !p.alert) {
-			alert := fmt.Sprintf("*** High traffic alert generated at %s, requests/s: %d ***", time.Now().Format("2006/02/01 15:04"), p.requests/p.secs)
+		rs := float32(p.requests) / float32(p.secs)
+		if (rs > float32(p.threshold) && !p.alert) {
+			alert := fmt.Sprintf("*** High traffic alert generated at %s, requests/s: %.0f ***", time.Now().Format("2006/02/01 15:04"), rs)
 			fmt.Println(alert)
 			p.alerts = append(p.alerts, alert)
 			p.alert = true
 			p.alertcount ++
 		}
 
-		if (p.requests / p.secs < p.threshold && p.alert) {
-			alert := fmt.Sprintf("*** High traffic alert recovered at %s , requests/s: %d ***", time.Now().Format("2006/02/01 15:04"), p.requests/p.secs)
+		if (rs <= float32(p.threshold) && p.alert) {
+			alert := fmt.Sprintf("*** High traffic alert recovered at %s , requests/s: %.0f ***", time.Now().Format("2006/02/01 15:04"), rs)
 			fmt.Println(alert)
 			p.alerts = append(p.alerts, alert)
 			p.alert = false
@@ -366,9 +367,9 @@ func (p *GlobalStatisticsLineHandler)display() {
 
 		fmt.Println("Global statistics:");
 		fmt.Println("\tRequests:", p.requests)
-		fmt.Println("\tRequests per seconds:", p.requests/p.secs)
+		fmt.Println("\tRequests per seconds:", rs)
 		fmt.Println("\tBytes sent:", p.bytessent)
-		fmt.Println("\tBytes sent per seconds:", p.bytessent/p.secs)
+		fmt.Println("\tBytes sent per seconds:", float32(p.bytessent) / float32(p.secs))
 		fmt.Println("\tHigh traffic alerts:", p.alertcount)
 		for index, alert := range p.alerts {
 			fmt.Println("\tAlert ", index, ":", alert)

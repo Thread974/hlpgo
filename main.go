@@ -448,7 +448,7 @@ func main() {
 	globsP := flag.Bool("global", true, "Show global statistics")
 	statsdelayP := flag.Duration("stats-delay", 10 * NANOINSEC, "Show section access delay")
 	globsdelayP := flag.Duration("globs-delay", 120 * NANOINSEC, "Show global statistics delay")
-	thresholdP := flag.Uint64("threshold", 300000, "Global alarm threshold")
+	thresholdP := flag.Uint64("threshold", 10, "Global alarm threshold")
 	rundelayP := flag.Duration("run-delay", 0, "Quit after this delay expired")
 	helpP := flag.Bool("help", false, "Show help")
 	flag.Parse()

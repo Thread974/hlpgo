@@ -163,11 +163,13 @@ func gen(quit chan int, filename string, delay time.Duration) error {
 		}
 
 		var logentry Logentry
-		LogentryGenerate(&logentry)
-		file.WriteString(logentry.String());
-		file.WriteString("\n");
-		if (delay != 0) {
-			time.Sleep(delay)
+		for i:= 0; i<5; i++ {
+			LogentryGenerate(&logentry)
+			file.WriteString(logentry.String());
+			file.WriteString("\n");
+			if (delay != 0) {
+				time.Sleep(delay)
+			}
 		}
 	}
 
@@ -444,8 +446,8 @@ func main() {
 	printP := flag.Bool("print", false, "Print input data")
 	statsP := flag.Bool("statistics", true, "Show section access")
 	globsP := flag.Bool("global", true, "Show global statistics")
-	statsdelayP := flag.Duration("stats-delay", 2 * NANOINSEC, "Show section access delay")
-	globsdelayP := flag.Duration("globs-delay", 3 * NANOINSEC, "Show global statistics delay")
+	statsdelayP := flag.Duration("stats-delay", 10 * NANOINSEC, "Show section access delay")
+	globsdelayP := flag.Duration("globs-delay", 120 * NANOINSEC, "Show global statistics delay")
 	thresholdP := flag.Uint64("threshold", 300000, "Global alarm threshold")
 	rundelayP := flag.Duration("run-delay", 0, "Quit after this delay expired")
 	helpP := flag.Bool("help", false, "Show help")

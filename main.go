@@ -344,13 +344,13 @@ func (p *GlobalStatisticsLineHandler)display() {
 
 	if (time.Since(p.start) > p.nanosec) {
 		if (p.requests / p.secs > p.threshold && !p.alert) {
-			fmt.Println("*** High traffic alert emitted at ", time.Now(), ", requests:", p.requests, "***")
+			fmt.Println("*** High traffic alert emitted at ", time.Now(), ", requests/s:", p.requests/p.secs, "***")
 			p.alert = true
 			p.alertcount ++
 		}
 
 		if (p.requests / p.secs < p.threshold && p.alert) {
-			fmt.Println("*** High traffic alert recovered at ", time.Now(), ", , requests:", p.requests, "***")
+			fmt.Println("*** High traffic alert recovered at ", time.Now(), ", requests/s:", p.requests/p.secs, "***")
 			p.alert = false
 		}
 

@@ -148,13 +148,7 @@ func TestParser() error {
 	return nil
 }
 
-func gen(quit chan int, filename string, delay time.Duration) error {
-	file, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-
+func gen(quit chan int, file *os.File, delay time.Duration) error {
 	for {
 		select {
 			case <-quit:
@@ -188,6 +182,7 @@ type LineHandler interface {
 func monitor(quit chan int, filename string, linehandlers []LineHandler) error {
 	file, err := os.Open(filename)
 	if err != nil {
+		fmt.Println("Failed to open", filename, "err", err);
 		return err
 	}
 	defer file.Close()
@@ -217,6 +212,10 @@ func monitor(quit chan int, filename string, linehandlers []LineHandler) error {
 			line, err = reader.ReadString('\n')
 			if err != nil && err != io.EOF {
 				return err
+			}
+			if err == io.EOF {
+				// Do not spin of EOF
+				time.Sleep(NANOINSEC/1000);
 			}
 			buf = buf + line
 		}
@@ -441,7 +440,7 @@ func TestAlert() error {
 func main() {
 	logfileP := flag.String("file", "/tmp/access.log", "Filename to monitor")
 	genP := flag.Bool("generate", false, "Generate data on the fly")
-	genDurationP := flag.Duration("generate-interval", 0, "Generate data interval")
+	genDurationP := flag.Duration("generate-interval", NANOINSEC / 100, "Generate data interval")
 	runtestP := flag.Bool("test", false, "Run test")
 	printP := flag.Bool("print", false, "Print input data")
 	statsP := flag.Bool("statistics", true, "Show section access")
@@ -478,7 +477,14 @@ func main() {
 	var quit = make(chan int)
 
 	if (*genP) {
-		go gen(quit, *logfileP, *genDurationP)
+		// Ensure the file is created before the monitor starts
+		file, err := os.OpenFile(*logfileP, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return
+		}
+		defer file.Close()
+
+		go gen(quit, file, *genDurationP)
 	}
 
 	var linehandlers []LineHandler

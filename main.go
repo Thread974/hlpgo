@@ -149,6 +149,9 @@ func TestParser() error {
 }
 
 func gen(quit chan int, file *os.File, delay time.Duration) error {
+
+	writer := bufio.NewWriter(file)
+
 	for {
 		select {
 			case <-quit:
@@ -159,8 +162,8 @@ func gen(quit chan int, file *os.File, delay time.Duration) error {
 		var logentry Logentry
 		for i:= 0; i<5; i++ {
 			LogentryGenerate(&logentry)
-			file.WriteString(logentry.String());
-			file.WriteString("\n");
+			writer.WriteString(logentry.String());
+			writer.WriteString("\n");
 			if (delay != 0) {
 				time.Sleep(delay)
 			}

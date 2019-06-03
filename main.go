@@ -483,6 +483,7 @@ func main() {
 		// Ensure the file is created before the monitor starts
 		file, err := os.OpenFile(*logfileP, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
+			fmt.Println("Failed to create", *logfileP, "err", err)
 			return
 		}
 		defer file.Close()

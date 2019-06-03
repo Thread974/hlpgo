@@ -311,6 +311,7 @@ type GlobalStatisticsLineHandler struct {
 	m sync.Mutex
 	alert bool
 	alertcount int
+	alerts []string
 }
 
 func (p *GlobalStatisticsLineHandler)init() {
@@ -344,14 +345,23 @@ func (p *GlobalStatisticsLineHandler)display() {
 
 	if (time.Since(p.start) > p.nanosec) {
 		if (p.requests / p.secs > p.threshold && !p.alert) {
-			fmt.Println("*** High traffic alert emitted at ", time.Now(), ", requests/s:", p.requests/p.secs, "***")
+			alert := fmt.Sprintf("*** High traffic alert generated at %s, requests/s: %d ***", time.Now().Format("2006/02/01 15:04"), p.requests/p.secs)
+			fmt.Println(alert)
+			p.alerts = append(p.alerts, alert)
 			p.alert = true
 			p.alertcount ++
 		}
 
 		if (p.requests / p.secs < p.threshold && p.alert) {
-			fmt.Println("*** High traffic alert recovered at ", time.Now(), ", requests/s:", p.requests/p.secs, "***")
+			alert := fmt.Sprintf("*** High traffic alert recovered at %s , requests/s: %d ***", time.Now().Format("2006/02/01 15:04"), p.requests/p.secs)
+			fmt.Println(alert)
+			p.alerts = append(p.alerts, alert)
 			p.alert = false
+		}
+
+		// Limit to last 10 alerts
+		if len(p.alerts) > 10 {
+			p.alerts = append(p.alerts[:0], p.alerts[1:]...)
 		}
 
 		fmt.Println("Global statistics:");
@@ -360,6 +370,9 @@ func (p *GlobalStatisticsLineHandler)display() {
 		fmt.Println("\tBytes sent:", p.bytessent)
 		fmt.Println("\tBytes sent per seconds:", p.bytessent/p.secs)
 		fmt.Println("\tHigh traffic alerts:", p.alertcount)
+		for index, alert := range p.alerts {
+			fmt.Println("\tAlert ", index, ":", alert)
+		}
 
 		p.requests = 0
 		p.bytessent = 0
